@@ -26,6 +26,7 @@ Features:
         'views/integration_view.xml',
         'views/einvoice_views.xml',
         'views/account_move_views.xml',
+        'views/account_tax_group_views.xml',
         'security/ir.model.access.csv',
     ],
     'demo': [],

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_tax_group_form_edevlet" model="ir.ui.view">
+        <field name="name">account.tax.group.form.edevlet</field>
+        <field name="model">account.tax.group</field>
+        <field name="inherit_id" ref="account.view_tax_group_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//group" position="inside">
+                <field name="tax_code" />
+                <field name="tax_code_name" />
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_account_tax_group_tree_edevlet" model="ir.ui.view">
+        <field name="name">account.tax.group.tree.edevlet</field>
+        <field name="model">account.tax.group</field>
+        <field name="inherit_id" ref="account.view_tax_group_tree" />
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="inside">
+                <field name="tax_code" />
+                <field name="tax_code_name" />
+            </xpath>
+        </field>
+    </record>
+</odoo>
