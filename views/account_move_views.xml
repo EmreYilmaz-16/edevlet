@@ -7,7 +7,7 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="profile_type"
-                       attrs="{'required': [('move_type', 'in', ('out_invoice', 'out_refund'))]}"/>
+                       modifiers="{'required': [('move_type', 'in', ['out_invoice', 'out_refund'])]}"/>
             </xpath>
         </field>
     </record>
