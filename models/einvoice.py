@@ -1,0 +1,101 @@
+from odoo import models, fields
+
+
+class EdevletRelation(models.Model):
+    _name = 'edevlet.relation'
+    _description = 'E-Devlet Relation'
+
+    relation_id = fields.Integer(string='Relation ID', readonly=True, copy=False)
+    action_id = fields.Integer(string='Action ID')
+    action_type = fields.Char(string='Action Type', size=50)
+    einvoice_id = fields.Char(string='E-Invoice ID', size=50)
+    uuid = fields.Char(string='UUID', size=50)
+    path = fields.Char(string='Path', size=250)
+    sender_type = fields.Integer(string='Sender Type')
+    service_result_description = fields.Char(string='Service Result Description', size=500)
+    status = fields.Boolean(string='Status')
+    profile_id = fields.Char(string='Profile ID', size=50)
+    envuuid = fields.Char(string='Env UUID', size=50)
+    integration_id = fields.Char(string='Integration ID', size=50)
+    is_paper_update = fields.Boolean(string='Is Paper Update')
+    status_code = fields.Integer(string='Status Code')
+    status_description = fields.Char(string='Status Description', size=250)
+    status_date = fields.Datetime(string='Status Date')
+    record_date = fields.Datetime(string='Record Date')
+    record_emp = fields.Integer(string='Record Employee')
+    record_ip = fields.Char(string='Record IP', size=50)
+    record_type = fields.Integer(string='Record Type')
+
+
+class EinvoiceSendingDetail(models.Model):
+    _name = 'einvoice.sending.detail'
+    _description = 'E-Invoice Sending Detail'
+
+    sending_detail_id = fields.Integer(string='Sending Detail ID', readonly=True, copy=False)
+    service_result = fields.Char(string='Service Result', size=50)
+    uuid = fields.Char(string='UUID', size=50)
+    einvoice_id = fields.Char(string='E-Invoice ID', size=50)
+    status_description = fields.Char(string='Status Description', size=50)
+    status_code = fields.Char(string='Status Code', size=50)
+    error_code = fields.Char(string='Error Code', size=50)
+    action_id = fields.Integer(string='Action ID')
+    action_type = fields.Char(string='Action Type', size=50)
+    is_succesfull = fields.Boolean(string='Is Successful')
+    service_result_description = fields.Char(string='Service Result Description', size=250)
+    belge_oid = fields.Char(string='Belge OID', size=50)
+    record_date = fields.Datetime(string='Record Date')
+    record_emp = fields.Integer(string='Record Employee')
+    record_ip = fields.Char(string='Record IP', size=50)
+    invoice_type_code = fields.Char(string='Invoice Type Code', size=50)
+    record_type = fields.Integer(string='Record Type')
+
+
+class EinvoiceReceivingDetail(models.Model):
+    _name = 'einvoice.receiving.detail'
+    _description = 'E-Invoice Receiving Detail'
+
+    receiving_detail_id = fields.Integer(string='Receiving Detail ID', readonly=True, copy=False)
+    service_result = fields.Char(string='Service Result', size=50)
+    service_result_description = fields.Char(string='Service Result Description', size=250)
+    uuid = fields.Char(string='UUID', size=50)
+    einvoice_id = fields.Char(string='E-Invoice ID', size=50)
+    status_description = fields.Char(string='Status Description', size=250)
+    status_code = fields.Integer(string='Status Code')
+    error_code = fields.Integer(string='Error Code')
+    invoice_type_code = fields.Char(string='Invoice Type Code', size=50)
+    sender_tax_id = fields.Char(string='Sender Tax ID', size=50)
+    receiver_tax_id = fields.Char(string='Receiver Tax ID', size=50)
+    profile_id = fields.Char(string='Profile ID', size=50)
+    payable_amount = fields.Float(string='Payable Amount')
+    issue_date = fields.Datetime(string='Issue Date')
+    party_name = fields.Char(string='Party Name', size=250)
+    payable_amount_currency = fields.Char(string='Payable Amount Currency', size=50)
+    path = fields.Char(string='Path', size=250)
+    status = fields.Boolean(string='Status')
+    is_process = fields.Boolean(string='Is Process')
+    invoice_id = fields.Integer(string='Invoice ID')
+    expense_id = fields.Integer(string='Expense ID')
+    process_stage = fields.Integer(string='Process Stage')
+    is_approve = fields.Boolean(string='Is Approve')
+    order_number = fields.Char(string='Order Number', size=50)
+    is_manuel = fields.Boolean(string='Is Manuel')
+    einvoice_type = fields.Integer(string='E-Invoice Type')
+    last_date = fields.Datetime(string='Last Date')
+    detail = fields.Char(string='Detail', size=500)
+    sender_alias = fields.Char(string='Sender Alias', size=50)
+    belge_oid = fields.Char(string='Belge OID', size=50)
+    print_count = fields.Integer(string='Print Count', default=0)
+    last_id = fields.Integer(string='Last ID')
+    record_date = fields.Datetime(string='Record Date')
+    record_emp = fields.Integer(string='Record Employee')
+    record_ip = fields.Char(string='Record IP', size=50)
+    update_emp = fields.Integer(string='Update Employee')
+    update_ip = fields.Char(string='Update IP', size=50)
+    update_date = fields.Datetime(string='Update Date')
+    is_transfer = fields.Boolean(string='Is Transfer', default=False)
+    branch_id = fields.Integer(string='Branch ID')
+    department_id = fields.Integer(string='Department ID')
+    ship_id = fields.Integer(string='Ship ID')
+    position_ids = fields.Char(string='Position IDs', size=50)
+    create_date = fields.Datetime(string='Create Date')
+    record_type = fields.Integer(string='Record Type')

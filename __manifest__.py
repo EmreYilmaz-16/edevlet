@@ -24,6 +24,7 @@ Features:
     ],
     'data': [
         'views/integration_view.xml',
+        'views/einvoice_views.xml',
         'security/ir.model.access.csv',
     ],
     'demo': [],
