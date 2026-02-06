@@ -17,3 +17,17 @@ class EdevletIntegration(models.Model):
     customization_id = fields.Char(string='Customization ID', size=10)
     template_file_name = fields.Char(string='Template File Name', size=50)
     sirket_kodu = fields.Char(string='Şirket Kodu', size=10)
+    xslt_file = fields.Binary(string='XSLT File', attachment=True)
+    xslt_file_name = fields.Char(string='XSLT File Name', size=128)
+    xslt_base64 = fields.Text(
+        string='XSLT Base64',
+        compute='_compute_xslt_base64',
+        store=True,
+        readonly=True,
+        help='Uploaded XSLT file encoded as base64.',
+    )
+
+    @api.depends('xslt_file')
+    def _compute_xslt_base64(self):
+        for record in self:
+            record.xslt_base64 = record.xslt_file or False
