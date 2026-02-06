@@ -17,7 +17,11 @@ PROFILE_TYPES = [
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    profile_type = fields.Selection(PROFILE_TYPES, string='Profile Type')
+    profile_type = fields.Selection(
+        PROFILE_TYPES,
+        string='Profile Type',
+        default='TICARIFATURA',
+    )
 
     @api.constrains('profile_type', 'move_type')
     def _check_profile_type_required(self):
