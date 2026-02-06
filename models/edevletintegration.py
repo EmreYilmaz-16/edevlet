@@ -12,6 +12,7 @@ class EdevletIntegration(models.Model):
     company_code = fields.Integer(string='Company Code', required=True)
     api_user_name = fields.Char(string='API User Name', size=100, required=True)
     api_password = fields.Char(string='API Password', size=100, required=True)
+    web_service_url = fields.Char(string='Web Service URL', size=255)
     prefix = fields.Char(string='Prefix', size=5)
     ubl_version = fields.Char(string='UBL Version', size=5)
     customization_id = fields.Char(string='Customization ID', size=10)
