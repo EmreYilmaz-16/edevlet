@@ -9,7 +9,7 @@ class EdevletIntegration(models.Model):
         ('2', 'EARSIV'),
         ('3', 'EIRSALIYE')
     ], string='Type', required=True)
-    company_code = fields.Integer(string='Company Code', required=True)
+    company_code = fields.Char(string='Company Code', required=True)
     api_user_name = fields.Char(string='API User Name', size=100, required=True)
     api_password = fields.Char(string='API Password', size=100, required=True)
     prefix = fields.Char(string='Prefix', size=5)
