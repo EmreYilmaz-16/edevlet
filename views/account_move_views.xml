@@ -5,6 +5,13 @@
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_download_invoice_xml"
+                        type="object"
+                        string="XML Oluştur"
+                        class="btn-primary"
+                        modifiers="{'invisible': [('move_type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+            </xpath>
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="profile_type"
                        modifiers="{'required': [('move_type', 'in', ['out_invoice', 'out_refund'])]}"/>
