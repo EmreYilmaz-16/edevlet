@@ -113,7 +113,10 @@ class AccountMove(models.Model):
         issue_time_dt = fields.Datetime.context_timestamp(self, fields.Datetime.now())
         issue_time = issue_time_dt.strftime('%H:%M:%S') if hasattr(issue_time_dt, 'strftime') else '00:00:00'
         uuid_value = self.ref or self.payment_reference or str(uuid.uuid4())
-        invoice_lines = self.invoice_line_ids.filtered(lambda line: not line.display_type)
+        # Sadece section ve note satırlarını filtrele, ürün satırlarını al
+        invoice_lines = self.invoice_line_ids.filtered(
+            lambda line: line.display_type not in ('line_section', 'line_note')
+        )
 
         self._set_xml_text(root, 'cbc:ID', self.name or '', nsmap)
         self._set_xml_text(root, 'cbc:ProfileID', self.profile_type or 'TICARIFATURA', nsmap)
@@ -225,7 +228,6 @@ class AccountMove(models.Model):
             root.remove(existing)
 
         if not invoice_lines:
-            root.append(template)
             return
 
         # Satırları LegalMonetaryTotal'dan önce ekle (UBL standart sırasına göre)
@@ -239,7 +241,8 @@ class AccountMove(models.Model):
             self._fill_invoice_line(line_element, line, index, currency, currency_code, nsmap)
             
             if insert_position is not None:
-                root.insert(insert_position + index - 1, line_element)
+                root.insert(insert_position, line_element)
+                insert_position += 1
             else:
                 root.append(line_element)
 
@@ -270,7 +273,9 @@ class AccountMove(models.Model):
 
     def _fill_invoice_line(self, node, line, index, currency, currency_code, nsmap):
         self._set_xml_text(node, 'cbc:ID', str(index), nsmap)
-        self._set_xml_text(node, 'cbc:Note', line.name or '', nsmap)
+        # Note alanına ürün açıklamasını ekle
+        note_text = line.name or (line.product_id.name if line.product_id else '')
+        self._set_xml_text(node, 'cbc:Note', note_text, nsmap)
 
         qty_node = node.find('cbc:InvoicedQuantity', nsmap)
         if qty_node is not None:
@@ -306,11 +311,17 @@ class AccountMove(models.Model):
 
         item = node.find('cac:Item', nsmap)
         if item is not None:
-            self._set_xml_text(item, 'cbc:Description', line.name or '', nsmap)
+            # Ürün açıklaması ve adı
             product_name = ''
             if line.product_id:
-                product_name = getattr(line.product_id, 'display_name', False) or line.product_id.name or ''
-            item_name = line.name or product_name
+                product_name = line.product_id.name or line.product_id.display_name or ''
+            
+            # Description: satır açıklaması veya ürün adı
+            description = line.name or product_name or 'Ürün'
+            self._set_xml_text(item, 'cbc:Description', description, nsmap)
+            
+            # Name: ürün adı veya satır adı
+            item_name = product_name or line.name or 'Ürün'
             self._set_xml_text(item, 'cbc:Name', item_name, nsmap)
 
         price = node.find('cac:Price', nsmap)
