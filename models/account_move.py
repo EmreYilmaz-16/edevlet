@@ -81,7 +81,12 @@ class AccountMove(models.Model):
         }
 
     def _generate_invoice_xml_content(self):
-        module_name = __name__.split('.')[0]
+        module_path = __name__.split('.')
+        module_name = (
+            module_path[2]
+            if len(module_path) >= 3 and module_path[0] == 'odoo' and module_path[1] == 'addons'
+            else module_path[0]
+        )
         xml_path = get_module_resource(module_name, 'ornek_xml.xml')
         if not xml_path:
             raise ValidationError(_('Sample XML file could not be found.'))
