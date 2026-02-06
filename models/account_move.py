@@ -96,6 +96,7 @@ class AccountMove(models.Model):
             raise ValidationError(_('Sample XML file is not valid.')) from error
         root = tree.getroot()
         nsmap = UBL_XML_NAMESPACES
+        self._register_xml_namespaces(nsmap)
 
         currency = self.currency_id or self.company_id.currency_id
         currency_code = currency and currency.name or 'TRY'
@@ -335,3 +336,7 @@ class AccountMove(models.Model):
 
     def _float_to_str(self, value, digits=2):
         return f"{float(value or 0):.{digits}f}"
+
+    def _register_xml_namespaces(self, nsmap):
+        for prefix, uri in nsmap.items():
+            ET.register_namespace(prefix, uri)
