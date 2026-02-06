@@ -268,7 +268,9 @@ class AccountMove(models.Model):
 
         self._set_amount_node(node, 'cbc:LineExtensionAmount', line.price_subtotal, currency, currency_code, nsmap)
 
-        tax_amount = line.price_total - line.price_subtotal
+        tax_amount = getattr(line, 'price_tax', None)
+        if tax_amount is None:
+            tax_amount = line.price_total - line.price_subtotal
         tax_total_node = node.find('cac:TaxTotal', nsmap)
         if tax_total_node is not None:
             self._set_amount_node(tax_total_node, 'cbc:TaxAmount', tax_amount, currency, currency_code, nsmap)
@@ -293,7 +295,7 @@ class AccountMove(models.Model):
         item = node.find('cac:Item', nsmap)
         if item is not None:
             self._set_xml_text(item, 'cbc:Description', line.name or '', nsmap)
-            item_name = line.product_id.display_name or line.name or ''
+            item_name = line.product_id.name if line.product_id else line.name or ''
             self._set_xml_text(item, 'cbc:Name', item_name, nsmap)
 
         price = node.find('cac:Price', nsmap)
