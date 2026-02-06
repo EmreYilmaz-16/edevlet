@@ -230,11 +230,11 @@ class AccountMove(models.Model):
         if not invoice_lines:
             return
 
-        # Satırları LegalMonetaryTotal'dan önce ekle (UBL standart sırasına göre)  
+        # Satırları LegalMonetaryTotal'dan sonra ekle (UBL standart sırasına göre)
         monetary_total = root.find('cac:LegalMonetaryTotal', nsmap)
         insert_position = None
         if monetary_total is not None:
-            insert_position = list(root).index(monetary_total)
+            insert_position = list(root).index(monetary_total) + 1
         
         for index, line in enumerate(invoice_lines, start=1):
             line_element = copy.deepcopy(template)
