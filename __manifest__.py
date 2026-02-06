@@ -1,0 +1,33 @@
+{
+    'name': 'E Fatura',
+    'version': '18.0.1.0.0',
+    'category': 'Accounting',
+    'summary': 'E-Devlet Ürünleri',
+    'description': """
+E-Devlet Management
+=====================
+This module allows you to create and manage E-Devlet records from Sale Orders.
+
+Features:
+---------
+* Track status
+    """,
+    'author': 'Emre Yılmaz',
+    'website': 'https://www.pbsyazilim.com',
+    'license': 'LGPL-3',
+    'depends': [
+        'base',
+        'sale',
+        'stock',
+        'mail',
+        'account',
+    ],
+    'data': [
+        'views/integration_view.xml',
+        'security/ir.model.access.csv',
+    ],
+    'demo': [],
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+}
