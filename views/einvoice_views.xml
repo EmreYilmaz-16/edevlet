@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_edevlet_relation_list" model="ir.ui.view">
+        <field name="name">edevlet.relation.list</field>
+        <field name="model">edevlet.relation</field>
+        <field name="arch" type="xml">
+            <list string="E-Devlet Relation">
+                <field name="relation_id"/>
+                <field name="action_id"/>
+                <field name="action_type"/>
+                <field name="einvoice_id"/>
+                <field name="uuid"/>
+                <field name="status"/>
+                <field name="status_code"/>
+                <field name="status_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_edevlet_relation_form" model="ir.ui.view">
+        <field name="name">edevlet.relation.form</field>
+        <field name="model">edevlet.relation</field>
+        <field name="arch" type="xml">
+            <form string="E-Devlet Relation">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="relation_id" readonly="1"/>
+                            <field name="action_id"/>
+                            <field name="action_type"/>
+                            <field name="einvoice_id"/>
+                            <field name="uuid"/>
+                            <field name="path"/>
+                            <field name="sender_type"/>
+                            <field name="service_result_description"/>
+                        </group>
+                        <group>
+                            <field name="status"/>
+                            <field name="profile_id"/>
+                            <field name="envuuid"/>
+                            <field name="integration_id"/>
+                            <field name="is_paper_update"/>
+                            <field name="status_code"/>
+                            <field name="status_description"/>
+                            <field name="status_date"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="record_date"/>
+                        <field name="record_emp"/>
+                        <field name="record_ip"/>
+                        <field name="record_type"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_edevlet_relation" model="ir.actions.act_window">
+        <field name="name">E-Devlet Relations</field>
+        <field name="res_model">edevlet.relation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_einvoice_sending_detail_list" model="ir.ui.view">
+        <field name="name">einvoice.sending.detail.list</field>
+        <field name="model">einvoice.sending.detail</field>
+        <field name="arch" type="xml">
+            <list string="E-Invoice Sending Details">
+                <field name="sending_detail_id"/>
+                <field name="service_result"/>
+                <field name="uuid"/>
+                <field name="einvoice_id"/>
+                <field name="status_code"/>
+                <field name="status_description"/>
+                <field name="is_succesfull"/>
+                <field name="record_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_einvoice_sending_detail_form" model="ir.ui.view">
+        <field name="name">einvoice.sending.detail.form</field>
+        <field name="model">einvoice.sending.detail</field>
+        <field name="arch" type="xml">
+            <form string="E-Invoice Sending Detail">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sending_detail_id" readonly="1"/>
+                            <field name="service_result"/>
+                            <field name="uuid"/>
+                            <field name="einvoice_id"/>
+                            <field name="status_description"/>
+                            <field name="status_code"/>
+                            <field name="error_code"/>
+                            <field name="action_id"/>
+                            <field name="action_type"/>
+                        </group>
+                        <group>
+                            <field name="is_succesfull"/>
+                            <field name="service_result_description"/>
+                            <field name="belge_oid"/>
+                            <field name="record_date"/>
+                            <field name="record_emp"/>
+                            <field name="record_ip"/>
+                            <field name="invoice_type_code"/>
+                            <field name="record_type"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_einvoice_sending_detail" model="ir.actions.act_window">
+        <field name="name">E-Invoice Sending Details</field>
+        <field name="res_model">einvoice.sending.detail</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_einvoice_receiving_detail_list" model="ir.ui.view">
+        <field name="name">einvoice.receiving.detail.list</field>
+        <field name="model">einvoice.receiving.detail</field>
+        <field name="arch" type="xml">
+            <list string="E-Invoice Receiving Details">
+                <field name="receiving_detail_id"/>
+                <field name="service_result"/>
+                <field name="uuid"/>
+                <field name="einvoice_id"/>
+                <field name="status_description"/>
+                <field name="status_code"/>
+                <field name="sender_tax_id"/>
+                <field name="receiver_tax_id"/>
+                <field name="payable_amount"/>
+                <field name="issue_date"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_einvoice_receiving_detail_form" model="ir.ui.view">
+        <field name="name">einvoice.receiving.detail.form</field>
+        <field name="model">einvoice.receiving.detail</field>
+        <field name="arch" type="xml">
+            <form string="E-Invoice Receiving Detail">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="receiving_detail_id" readonly="1"/>
+                            <field name="service_result"/>
+                            <field name="service_result_description"/>
+                            <field name="uuid"/>
+                            <field name="einvoice_id"/>
+                            <field name="status_description"/>
+                            <field name="status_code"/>
+                            <field name="error_code"/>
+                            <field name="invoice_type_code"/>
+                            <field name="profile_id"/>
+                            <field name="einvoice_type"/>
+                            <field name="detail"/>
+                        </group>
+                        <group>
+                            <field name="sender_tax_id"/>
+                            <field name="receiver_tax_id"/>
+                            <field name="sender_alias"/>
+                            <field name="party_name"/>
+                            <field name="payable_amount"/>
+                            <field name="payable_amount_currency"/>
+                            <field name="issue_date"/>
+                            <field name="last_date"/>
+                            <field name="path"/>
+                            <field name="belge_oid"/>
+                            <field name="print_count"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="status"/>
+                            <field name="is_process"/>
+                            <field name="process_stage"/>
+                            <field name="is_approve"/>
+                            <field name="is_manuel"/>
+                            <field name="is_transfer"/>
+                            <field name="order_number"/>
+                        </group>
+                        <group>
+                            <field name="invoice_id"/>
+                            <field name="expense_id"/>
+                            <field name="last_id"/>
+                            <field name="branch_id"/>
+                            <field name="department_id"/>
+                            <field name="ship_id"/>
+                            <field name="position_ids"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="record_date"/>
+                            <field name="record_emp"/>
+                            <field name="record_ip"/>
+                            <field name="record_type"/>
+                        </group>
+                        <group>
+                            <field name="update_date"/>
+                            <field name="update_emp"/>
+                            <field name="update_ip"/>
+                            <field name="create_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_einvoice_receiving_detail" model="ir.actions.act_window">
+        <field name="name">E-Invoice Receiving Details</field>
+        <field name="res_model">einvoice.receiving.detail</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_edevlet_relation"
+              name="Relations"
+              parent="menu_edevlet_root"
+              action="action_edevlet_relation"
+              sequence="20"/>
+
+    <menuitem id="menu_einvoice_sending_detail"
+              name="Sending Details"
+              parent="menu_edevlet_root"
+              action="action_einvoice_sending_detail"
+              sequence="30"/>
+
+    <menuitem id="menu_einvoice_receiving_detail"
+              name="Receiving Details"
+              parent="menu_edevlet_root"
+              action="action_einvoice_receiving_detail"
+              sequence="40"/>
+</odoo>
