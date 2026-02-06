@@ -115,7 +115,7 @@ class AccountMove(models.Model):
         uuid_value = self.ref or self.payment_reference or str(uuid.uuid4())
         # Sadece section ve note satırlarını filtrele, ürün satırlarını al
         invoice_lines = self.invoice_line_ids.filtered(
-            lambda line: not line.display_type
+            lambda line: line.display_type not in ('line_section', 'line_note')
         )
 
         self._set_xml_text(root, 'cbc:ID', self.name or '', nsmap)
