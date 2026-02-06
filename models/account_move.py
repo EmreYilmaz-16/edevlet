@@ -115,7 +115,7 @@ class AccountMove(models.Model):
         uuid_value = self.ref or self.payment_reference or str(uuid.uuid4())
         # Sadece section ve note satırlarını filtrele, ürün satırlarını al
         invoice_lines = self.invoice_line_ids.filtered(
-            lambda line: line.display_type not in ('line_section', 'line_note')
+            lambda line: not line.display_type
         )
 
         self._set_xml_text(root, 'cbc:ID', self.name or '', nsmap)
@@ -230,7 +230,7 @@ class AccountMove(models.Model):
         if not invoice_lines:
             return
 
-        # Satırları LegalMonetaryTotal'dan önce ekle (UBL standart sırasına göre)
+        # Satırları LegalMonetaryTotal'dan önce ekle (UBL standart sırasına göre)  
         monetary_total = root.find('cac:LegalMonetaryTotal', nsmap)
         insert_position = None
         if monetary_total is not None:
@@ -241,8 +241,8 @@ class AccountMove(models.Model):
             self._fill_invoice_line(line_element, line, index, currency, currency_code, nsmap)
             
             if insert_position is not None:
-                root.insert(insert_position, line_element)
-                insert_position += 1
+                # Her satır eklendiğinde pozisyonu artır
+                root.insert(insert_position + index - 1, line_element)
             else:
                 root.append(line_element)
 
