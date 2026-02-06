@@ -37,6 +37,7 @@ class AccountMove(models.Model):
     invoice_type_code = fields.Selection(
         INVOICE_TYPE_CODES,
         string='Invoice Type Code',
+        default='SATIS',
     )
 
     @api.constrains('profile_type', 'move_type')
