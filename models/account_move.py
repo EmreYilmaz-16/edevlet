@@ -295,7 +295,10 @@ class AccountMove(models.Model):
         item = node.find('cac:Item', nsmap)
         if item is not None:
             self._set_xml_text(item, 'cbc:Description', line.name or '', nsmap)
-            item_name = line.product_id.name if line.product_id else line.name or ''
+            product_name = ''
+            if line.product_id:
+                product_name = getattr(line.product_id, 'display_name', False) or line.product_id.name or ''
+            item_name = line.name or product_name
             self._set_xml_text(item, 'cbc:Name', item_name, nsmap)
 
         price = node.find('cac:Price', nsmap)
