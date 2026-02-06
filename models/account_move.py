@@ -219,6 +219,8 @@ class AccountMove(models.Model):
             template = copy.deepcopy(template)
         else:
             template = self._build_invoice_line_template(currency_code)
+        
+        # İlk olarak mevcut satırları temizle
         for existing in root.findall('cac:InvoiceLine', nsmap):
             root.remove(existing)
 
@@ -226,10 +228,20 @@ class AccountMove(models.Model):
             root.append(template)
             return
 
+        # Satırları LegalMonetaryTotal'dan önce ekle (UBL standart sırasına göre)
+        monetary_total = root.find('cac:LegalMonetaryTotal', nsmap)
+        insert_position = None
+        if monetary_total is not None:
+            insert_position = list(root).index(monetary_total)
+        
         for index, line in enumerate(invoice_lines, start=1):
             line_element = copy.deepcopy(template)
             self._fill_invoice_line(line_element, line, index, currency, currency_code, nsmap)
-            root.append(line_element)
+            
+            if insert_position is not None:
+                root.insert(insert_position + index - 1, line_element)
+            else:
+                root.append(line_element)
 
     def _build_invoice_line_template(self, currency_code):
         nsmap = UBL_XML_NAMESPACES
