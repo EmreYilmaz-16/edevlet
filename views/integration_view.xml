@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Tree View -->
-    <record id="view_edevlet_integration_tree" model="ir.ui.view">
-        <field name="name">edevlet.integration.tree</field>
+    <!-- List View -->
+    <record id="view_edevlet_integration_list" model="ir.ui.view">
+        <field name="name">edevlet.integration.list</field>
         <field name="model">edevlet.integration</field>
         <field name="arch" type="xml">
-            <tree string="E-Devlet Entegrasyonları">
+            <list string="E-Devlet Entegrasyonları">
                 <field name="type"/>
                 <field name="company_code"/>
                 <field name="api_user_name"/>
@@ -13,7 +13,7 @@
                 <field name="ubl_version"/>
                 <field name="customization_id"/>
                 <field name="template_file_name"/>
-            </tree>
+            </list>
         </field>
     </record>
 
@@ -47,7 +47,7 @@
     <record id="action_edevlet_integration" model="ir.actions.act_window">
         <field name="name">E-Devlet Entegrasyonları</field>
         <field name="res_model">edevlet.integration</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Yeni bir E-Devlet entegrasyonu ekleyin
