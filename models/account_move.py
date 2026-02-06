@@ -127,10 +127,36 @@ class AccountMove(models.Model):
         if self.invoice_origin:
             order_ref = root.find('cac:OrderReference', nsmap)
             self._set_xml_text(order_ref, 'cbc:ID', self.invoice_origin, nsmap)
-        if self.narration:
-            note_nodes = root.findall('cbc:Note', nsmap)
-            if note_nodes:
-                note_nodes[0].text = self.narration
+            self._set_xml_text(order_ref, 'cbc:IssueDate', fields.Date.to_string(issue_date), nsmap)
+        else:
+            order_ref = root.find('cac:OrderReference', nsmap)
+            if order_ref is not None:
+                root.remove(order_ref)
+        note_nodes = root.findall('cbc:Note', nsmap)
+        if note_nodes:
+            issue_time_note = issue_time_dt.strftime('%H:%M') if hasattr(issue_time_dt, 'strftime') else ''
+            note_nodes[0].text = issue_time_note
+            if len(note_nodes) > 1:
+                note_nodes[1].text = issue_date.strftime('%d-%m-%Y') if hasattr(issue_date, 'strftime') else ''
+            if len(note_nodes) > 2:
+                note_nodes[2].text = self.invoice_user_id.name or self.create_uid.name or ''
+            if len(note_nodes) > 3:
+                for extra_node in note_nodes[3:]:
+                    root.remove(extra_node)
+
+        amount_in_words = self._get_amount_in_words(currency)
+        if amount_in_words:
+            for doc_ref in root.findall('cac:AdditionalDocumentReference', nsmap):
+                doc_type = doc_ref.find('cbc:DocumentType', nsmap)
+                if doc_type is None or not doc_type.text:
+                    continue
+                doc_type_value = doc_type.text.strip()
+                if doc_type_value in ('TR_NET_STR', 'TOTAL_NET_STR'):
+                    self._set_xml_text(doc_ref, 'cbc:ID', amount_in_words, nsmap)
+                    self._set_xml_text(doc_ref, 'cbc:IssueDate', fields.Date.to_string(issue_date), nsmap)
+                elif doc_type_value == 'PAYABLEAMOUNT':
+                    self._set_xml_text(doc_ref, 'cbc:ID', self._float_to_str(self.amount_total, digits=2), nsmap)
+                    self._set_xml_text(doc_ref, 'cbc:IssueDate', fields.Date.to_string(issue_date), nsmap)
 
         self._populate_party_block(
             root.find('cac:AccountingSupplierParty', nsmap),
@@ -349,3 +375,9 @@ class AccountMove(models.Model):
     def _register_xml_namespaces(self, nsmap):
         for prefix, uri in nsmap.items():
             ET.register_namespace(prefix, uri)
+
+    def _get_amount_in_words(self, currency):
+        if not currency:
+            return ''
+        lang = self.partner_id.lang or self.env.user.lang or 'tr_TR'
+        return currency.with_context(lang=lang).amount_to_text(self.amount_total) or ''
