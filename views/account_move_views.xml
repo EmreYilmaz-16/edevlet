@@ -8,6 +8,8 @@
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="profile_type"
                        modifiers="{'required': [('move_type', 'in', ['out_invoice', 'out_refund'])]}"/>
+                <field name="invoice_type_code"
+                       modifiers="{'required': [('move_type', 'in', ['out_invoice', 'out_refund'])]}"/>
             </xpath>
         </field>
     </record>
