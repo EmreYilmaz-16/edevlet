@@ -174,8 +174,39 @@ class AccountMove(models.Model):
 
         self._populate_invoice_lines(root, invoice_lines, currency, currency_code, nsmap)
         self._update_totals(root, currency, currency_code, invoice_lines, nsmap)
+        self._apply_xslt_attachment(root, nsmap)
 
         return ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+    def _get_edevlet_integration(self):
+        self.ensure_one()
+        Integration = self.env['edevlet.integration']
+        integration = Integration.search([('company_code', '=', self.company_id.id)], limit=1)
+        if not integration:
+            integration = Integration.search([('type', '=', '1')], limit=1)
+        if not integration:
+            integration = Integration.search([], limit=1)
+        return integration
+
+    def _apply_xslt_attachment(self, root, nsmap):
+        integration = self._get_edevlet_integration()
+        if not integration or not integration.xslt_base64:
+            return
+        xslt_base64 = integration.xslt_base64
+        if isinstance(xslt_base64, bytes):
+            xslt_base64 = xslt_base64.decode()
+        for doc_ref in root.findall('cac:AdditionalDocumentReference', nsmap):
+            doc_type = doc_ref.find('cbc:DocumentType', nsmap)
+            if doc_type is None or not doc_type.text:
+                continue
+            if doc_type.text.strip().upper() != 'XSLT':
+                continue
+            embedded = doc_ref.find('cac:Attachment/cbc:EmbeddedDocumentBinaryObject', nsmap)
+            if embedded is None:
+                continue
+            embedded.text = xslt_base64
+            if integration.xslt_file_name:
+                embedded.set('filename', integration.xslt_file_name)
 
     def _populate_party_block(self, party_record, partner, nsmap):
         if party_record is None or not partner:
