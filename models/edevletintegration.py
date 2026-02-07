@@ -31,4 +31,5 @@ class EdevletIntegration(models.Model):
     @api.depends('xslt_file')
     def _compute_xslt_base64(self):
         for record in self:
-            record.xslt_base64 = record.xslt_file or False
+            xslt_file = record.with_context(bin_size=False).xslt_file
+            record.xslt_base64 = xslt_file or False
