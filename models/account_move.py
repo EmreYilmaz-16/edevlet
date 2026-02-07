@@ -284,6 +284,11 @@ class AccountMove(models.Model):
         ET.SubElement(line_el, f"{{{nsmap['cbc']}}}Note")
         ET.SubElement(line_el, f"{{{nsmap['cbc']}}}InvoicedQuantity", unitCode='C62')
         ET.SubElement(line_el, f"{{{nsmap['cbc']}}}LineExtensionAmount", currencyID=currency_code)
+        allowance_charge = ET.SubElement(line_el, f"{{{nsmap['cac']}}}AllowanceCharge")
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}ChargeIndicator")
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}MultiplierFactorNumeric")
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}Amount", currencyID=currency_code)
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}BaseAmount", currencyID=currency_code)
         tax_total = ET.SubElement(line_el, f"{{{nsmap['cac']}}}TaxTotal")
         ET.SubElement(tax_total, f"{{{nsmap['cbc']}}}TaxAmount", currencyID=currency_code)
         tax_subtotal = ET.SubElement(tax_total, f"{{{nsmap['cac']}}}TaxSubtotal")
@@ -315,6 +320,31 @@ class AccountMove(models.Model):
             qty_node.set('unitCode', unit_code)
 
         self._set_amount_node(node, 'cbc:LineExtensionAmount', line.price_subtotal, currency, currency_code, nsmap)
+
+        base_amount = (line.price_unit or 0.0) * (line.quantity or 0.0)
+        discount_amount = base_amount - (line.price_subtotal or 0.0)
+        if discount_amount < 0:
+            discount_amount = 0.0
+        for allowance_node in node.findall('cac:AllowanceCharge', nsmap):
+            node.remove(allowance_node)
+        if discount_amount > 0:
+            allowance_node = ET.Element(f"{{{nsmap['cac']}}}AllowanceCharge")
+            charge_indicator = ET.SubElement(allowance_node, f"{{{nsmap['cbc']}}}ChargeIndicator")
+            charge_indicator.text = 'false'
+            multiplier_node = ET.SubElement(allowance_node, f"{{{nsmap['cbc']}}}MultiplierFactorNumeric")
+            discount_ratio = (discount_amount / base_amount) if base_amount else 0.0
+            multiplier_node.text = self._float_to_str(discount_ratio, digits=4)
+            amount_node = ET.SubElement(allowance_node, f"{{{nsmap['cbc']}}}Amount", currencyID=currency_code)
+            currency_digits = currency.decimal_places if currency and currency.decimal_places is not None else 2
+            amount_node.text = self._float_to_str(discount_amount, digits=currency_digits)
+            base_node = ET.SubElement(allowance_node, f"{{{nsmap['cbc']}}}BaseAmount", currencyID=currency_code)
+            base_node.text = self._float_to_str(base_amount, digits=currency_digits)
+            line_extension = node.find('cbc:LineExtensionAmount', nsmap)
+            if line_extension is not None:
+                insert_index = list(node).index(line_extension) + 1
+                node.insert(insert_index, allowance_node)
+            else:
+                node.append(allowance_node)
 
         tax_amount = getattr(line, 'price_tax', None)
         if tax_amount is None:
@@ -382,10 +412,16 @@ class AccountMove(models.Model):
 
         monetary_total = root.find('cac:LegalMonetaryTotal', nsmap)
         if monetary_total is not None:
+            discount_total = 0.0
+            for line in invoice_lines:
+                base_amount = (line.price_unit or 0.0) * (line.quantity or 0.0)
+                discount_amount = base_amount - (line.price_subtotal or 0.0)
+                if discount_amount > 0:
+                    discount_total += discount_amount
             self._set_amount_node(monetary_total, 'cbc:LineExtensionAmount', self.amount_untaxed, currency, currency_code, nsmap)
             self._set_amount_node(monetary_total, 'cbc:TaxExclusiveAmount', self.amount_untaxed, currency, currency_code, nsmap)
             self._set_amount_node(monetary_total, 'cbc:TaxInclusiveAmount', self.amount_total, currency, currency_code, nsmap)
-            self._set_amount_node(monetary_total, 'cbc:AllowanceTotalAmount', 0.0, currency, currency_code, nsmap)
+            self._set_amount_node(monetary_total, 'cbc:AllowanceTotalAmount', discount_total, currency, currency_code, nsmap)
             self._set_amount_node(monetary_total, 'cbc:PayableAmount', self.amount_total, currency, currency_code, nsmap)
 
     def _extract_tax_metadata(self, line):
