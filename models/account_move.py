@@ -128,6 +128,7 @@ class AccountMove(models.Model):
         self._set_xml_text(root, 'cbc:IssueDate', fields.Date.to_string(issue_date), nsmap)
         self._set_xml_text(root, 'cbc:IssueTime', issue_time, nsmap)
         self._set_xml_text(root, 'cbc:LineCountNumeric', str(len(invoice_lines)), nsmap)
+        
         if self.invoice_origin:
             order_ref = root.find('cac:OrderReference', nsmap)
             self._set_xml_text(order_ref, 'cbc:ID', self.invoice_origin, nsmap)
@@ -196,12 +197,18 @@ class AccountMove(models.Model):
         xslt_base64 = integration.xslt_base64
         if isinstance(xslt_base64, bytes):
             xslt_base64 = xslt_base64.decode()
+        issue_date = self.invoice_date or fields.Date.context_today(self)
         for doc_ref in root.findall('cac:AdditionalDocumentReference', nsmap):
             doc_type = doc_ref.find('cbc:DocumentType', nsmap)
             if doc_type is None or not doc_type.text:
                 continue
             if doc_type.text.strip().upper() != 'XSLT':
                 continue
+            # ID ve IssueDate alanlarını doldur
+            invoice_number = self.name or f'DRAFT-{self.id}'
+            self._set_xml_text(doc_ref, 'cbc:ID', invoice_number, nsmap)
+            self._set_xml_text(doc_ref, 'cbc:IssueDate', fields.Date.to_string(issue_date), nsmap)
+            # Base64 içeriğini ekle
             embedded = doc_ref.find('cac:Attachment/cbc:EmbeddedDocumentBinaryObject', nsmap)
             if embedded is None:
                 continue
