@@ -192,11 +192,11 @@ class AccountMove(models.Model):
 
     def _apply_xslt_attachment(self, root, nsmap):
         integration = self._get_edevlet_integration()
-        if not integration or not integration.xslt_base64:
-            return
-        xslt_base64 = integration.xslt_base64
-        if isinstance(xslt_base64, bytes):
-            xslt_base64 = xslt_base64.decode()
+        xslt_base64 = None
+        if integration and integration.xslt_base64:
+            xslt_base64 = integration.xslt_base64
+            if isinstance(xslt_base64, bytes):
+                xslt_base64 = xslt_base64.decode()
         issue_date = self.invoice_date or fields.Date.context_today(self)
         for doc_ref in root.findall('cac:AdditionalDocumentReference', nsmap):
             doc_type = doc_ref.find('cbc:DocumentType', nsmap)
@@ -212,9 +212,10 @@ class AccountMove(models.Model):
             embedded = doc_ref.find('cac:Attachment/cbc:EmbeddedDocumentBinaryObject', nsmap)
             if embedded is None:
                 continue
-            embedded.text = xslt_base64
-            if integration.xslt_file_name:
-                embedded.set('filename', integration.xslt_file_name)
+            if xslt_base64:
+                embedded.text = xslt_base64
+                if integration and integration.xslt_file_name:
+                    embedded.set('filename', integration.xslt_file_name)
 
     def _populate_party_block(self, party_record, partner, nsmap):
         if party_record is None or not partner:
