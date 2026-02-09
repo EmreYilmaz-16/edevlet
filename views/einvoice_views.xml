@@ -219,6 +219,53 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <record id="view_einvoice_company_import_list" model="ir.ui.view">
+        <field name="name">einvoice.company.import.list</field>
+        <field name="model">einvoice.company.import</field>
+        <field name="arch" type="xml">
+            <list string="E-Invoice Company Imports">
+                <field name="einvoice_comp_id"/>
+                <field name="tax_no"/>
+                <field name="alias"/>
+                <field name="company_fullname"/>
+                <field name="type"/>
+                <field name="register_date"/>
+                <field name="einvoice_type"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_einvoice_company_import_form" model="ir.ui.view">
+        <field name="name">einvoice.company.import.form</field>
+        <field name="model">einvoice.company.import</field>
+        <field name="arch" type="xml">
+            <form string="E-Invoice Company Import">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="einvoice_comp_id" readonly="1"/>
+                            <field name="tax_no"/>
+                            <field name="alias"/>
+                            <field name="company_fullname"/>
+                        </group>
+                        <group>
+                            <field name="type"/>
+                            <field name="register_date"/>
+                            <field name="alias_creation_date"/>
+                            <field name="einvoice_type"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_einvoice_company_import" model="ir.actions.act_window">
+        <field name="name">E-Invoice Company Imports</field>
+        <field name="res_model">einvoice.company.import</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
     <menuitem id="menu_edevlet_relation"
               name="Relations"
               parent="menu_edevlet_root"
@@ -236,4 +283,10 @@
               parent="menu_edevlet_root"
               action="action_einvoice_receiving_detail"
               sequence="40"/>
+
+    <menuitem id="menu_einvoice_company_import"
+              name="Company Imports"
+              parent="menu_edevlet_root"
+              action="action_einvoice_company_import"
+              sequence="50"/>
 </odoo>
