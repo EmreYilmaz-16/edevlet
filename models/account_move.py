@@ -451,8 +451,17 @@ class AccountMove(models.Model):
         tax = line.tax_ids[:1]
         tax = tax[0] if tax else None
         percent_value = tax.amount if tax and tax.amount_type == 'percent' else 0.0
-        tax_name = tax.name if tax and tax.name else 'KDV'
-        tax_code = getattr(tax, 'l10n_tr_code', False) or '0015'
+        tax_group = tax.tax_group_id if tax else None
+        tax_name = (
+            getattr(tax_group, 'tax_code_name', False)
+            or (tax.name if tax and tax.name else None)
+            or 'KDV'
+        )
+        tax_code = (
+            getattr(tax_group, 'tax_code', False)
+            or getattr(tax, 'l10n_tr_code', False)
+            or '0015'
+        )
         return percent_value, tax_name, tax_code
 
     def _get_line_unit_code(self, line):
