@@ -99,3 +99,17 @@ class EinvoiceReceivingDetail(models.Model):
     position_ids = fields.Char(string='Position IDs', size=50)
     create_date = fields.Datetime(string='Create Date')
     record_type = fields.Integer(string='Record Type')
+
+
+class EinvoiceCompanyImport(models.Model):
+    _name = 'einvoice.company.import'
+    _description = 'E-Invoice Company Import'
+
+    einvoice_comp_id = fields.Integer(string='E-Invoice Company ID', readonly=True, copy=False)
+    tax_no = fields.Char(string='Tax No', size=50)
+    alias = fields.Char(string='Alias', size=100)
+    company_fullname = fields.Char(string='Company Full Name', size=250)
+    type = fields.Char(string='Type', size=50)
+    register_date = fields.Datetime(string='Register Date')
+    alias_creation_date = fields.Datetime(string='Alias Creation Date')
+    einvoice_type = fields.Integer(string='E-Invoice Type')

@@ -3,3 +3,4 @@ access_edevlet_integration_user,edevlet.integration.user,model_edevlet_integrati
 access_edevlet_relation_user,edevlet.relation.user,model_edevlet_relation,base.group_user,1,1,1,1
 access_einvoice_sending_detail_user,einvoice.sending.detail.user,model_einvoice_sending_detail,base.group_user,1,1,1,1
 access_einvoice_receiving_detail_user,einvoice.receiving.detail.user,model_einvoice_receiving_detail,base.group_user,1,1,1,1
+access_einvoice_company_import_user,einvoice.company.import.user,model_einvoice_company_import,base.group_user,1,1,1,1
