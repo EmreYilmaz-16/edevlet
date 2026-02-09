@@ -284,6 +284,12 @@ class AccountMove(models.Model):
         ET.SubElement(line_el, f"{{{nsmap['cbc']}}}Note")
         ET.SubElement(line_el, f"{{{nsmap['cbc']}}}InvoicedQuantity", unitCode='C62')
         ET.SubElement(line_el, f"{{{nsmap['cbc']}}}LineExtensionAmount", currencyID=currency_code)
+        allowance_charge = ET.SubElement(line_el, f"{{{nsmap['cac']}}}AllowanceCharge")
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}ChargeIndicator")
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}Amount", currencyID=currency_code)
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}BaseAmount", currencyID=currency_code)
+        ET.SubElement(allowance_charge, f"{{{nsmap['cbc']}}}MultiplierFactorNumeric")
+
         tax_total = ET.SubElement(line_el, f"{{{nsmap['cac']}}}TaxTotal")
         ET.SubElement(tax_total, f"{{{nsmap['cbc']}}}TaxAmount", currencyID=currency_code)
         tax_subtotal = ET.SubElement(tax_total, f"{{{nsmap['cac']}}}TaxSubtotal")
@@ -314,8 +320,13 @@ class AccountMove(models.Model):
             unit_code = self._get_line_unit_code(line)
             qty_node.set('unitCode', unit_code)
 
-        self._set_amount_node(node, 'cbc:LineExtensionAmount', line.price_subtotal, currency, currency_code, nsmap)
-
+        self._set_amount_node(node, 'cbc:LineExtensionAmount', line.credit, currency, currency_code, nsmap)
+        allowance_charge = node.find('cac:AllowanceCharge', nsmap)
+        if allowance_charge is not None:
+            self._set_xml_text(allowance_charge, 'cbc:ChargeIndicator', 'false', nsmap)
+            self._set_amount_node(allowance_charge, 'cbc:Amount', line.price_subtotal * (line.discount / 100.0), currency, currency_code, nsmap)
+            self._set_amount_node(allowance_charge, 'cbc:BaseAmount', line.price_subtotal, currency, currency_code, nsmap)
+            self._set_xml_text(allowance_charge, 'cbc:MultiplierFactorNumeric', line.discount/100.00, nsmap)        
         tax_amount = getattr(line, 'price_tax', None)
         if tax_amount is None:
             tax_amount = line.price_total - line.price_subtotal
