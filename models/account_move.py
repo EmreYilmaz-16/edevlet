@@ -112,7 +112,8 @@ class AccountMove(models.Model):
         issue_date = self.invoice_date or fields.Date.context_today(self)
         issue_time_dt = fields.Datetime.context_timestamp(self, fields.Datetime.now())
         issue_time = issue_time_dt.strftime('%H:%M:%S') if hasattr(issue_time_dt, 'strftime') else '00:00:00'
-        uuid_value = self.ref or self.payment_reference or str(uuid.uuid4())
+        uuid_value = str(uuid.uuid4())
+
         # Sadece section ve note satırlarını filtrele, ürün satırlarını al
         invoice_lines = self.invoice_line_ids.filtered(
             lambda line: line.display_type not in ('line_section', 'line_note')
