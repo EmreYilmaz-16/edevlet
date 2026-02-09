@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
-from odoo.modules.module import get_module_resource
+from odoo.tools.misc import file_path
 
 PROFILE_TYPES = [
     ('TICARIFATURA', 'TICARIFATURA'),
@@ -96,7 +96,7 @@ class AccountMove(models.Model):
             if len(module_path) >= 3 and module_path[0] == 'odoo' and module_path[1] == 'addons'
             else module_path[0]
         )
-        xml_path = get_module_resource(module_name, 'ornek_xml.xml')
+        xml_path = file_path(f"{module_name}/ornek_xml.xml")
         if not xml_path:
             raise ValidationError(_('Sample XML file could not be found.'))
         try:
@@ -211,7 +211,9 @@ class AccountMove(models.Model):
     def _populate_party_block(self, party_record, partner, nsmap):
         if party_record is None or not partner:
             return
-        party = party_record.find('cac:Party', nsmap) or party_record
+        party = party_record.find('cac:Party', nsmap)
+        if party is None:
+            party = party_record
         self._set_xml_text(party, 'cbc:WebsiteURI', partner.website or '', nsmap)
 
         identification = party.find('cac:PartyIdentification', nsmap)
@@ -322,7 +324,12 @@ class AccountMove(models.Model):
         self._set_amount_node(node, 'cbc:LineExtensionAmount', line.price_subtotal, currency, currency_code, nsmap)
 
         base_amount = (line.price_unit or 0.0) * (line.quantity or 0.0)
-        discount_amount = base_amount - (line.price_subtotal or 0.0)
+        subtotal_amount = line.price_subtotal or 0.0
+        discount_amount = base_amount - subtotal_amount
+        if hasattr(line, 'discount') and line.discount:
+            discount_amount = max(discount_amount, base_amount * (line.discount / 100.0))
+        if hasattr(line, 'discount_fixed') and line.discount_fixed:
+            discount_amount = max(discount_amount, line.discount_fixed * (line.quantity or 1.0))
         if discount_amount < 0:
             discount_amount = 0.0
         for allowance_node in node.findall('cac:AllowanceCharge', nsmap):
@@ -415,7 +422,12 @@ class AccountMove(models.Model):
             discount_total = 0.0
             for line in invoice_lines:
                 base_amount = (line.price_unit or 0.0) * (line.quantity or 0.0)
-                discount_amount = base_amount - (line.price_subtotal or 0.0)
+                subtotal_amount = line.price_subtotal or 0.0
+                discount_amount = base_amount - subtotal_amount
+                if hasattr(line, 'discount') and line.discount:
+                    discount_amount = max(discount_amount, base_amount * (line.discount / 100.0))
+                if hasattr(line, 'discount_fixed') and line.discount_fixed:
+                    discount_amount = max(discount_amount, line.discount_fixed * (line.quantity or 1.0))
                 if discount_amount > 0:
                     discount_total += discount_amount
             self._set_amount_node(monetary_total, 'cbc:LineExtensionAmount', self.amount_untaxed, currency, currency_code, nsmap)
