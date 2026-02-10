@@ -260,13 +260,19 @@ class EdevletIntegration(models.Model):
 
         customers = root.findall('.//tem:EInvoiceCustomerResult', ns)
         if not customers:
-            return _('Sorgu başarılı fakat kayıt bulunamadı.')
+            return {
+                'summary': _('Sorgu başarılı fakat kayıt bulunamadı.'),
+                'status': False,
+            }
 
         self._upsert_check_customer_tax_id_results(customers)
 
         lines = []
+        is_taxpayer = False
         for customer in customers:
             is_exist = (customer.findtext(f'{{{TEMPURI_NS}}}IsExist') or '').strip().lower()
+            if is_exist == 'true':
+                is_taxpayer = True
             lines.append(
                 _('%(tax_id)s | %(name)s | %(alias)s | Durum: %(status)s') % {
                     'tax_id': self._normalize_node_text(customer.findtext(f'{{{TEMPURI_NS}}}TaxIdOrPersonalId')) or '-',
@@ -276,7 +282,10 @@ class EdevletIntegration(models.Model):
                 }
             )
 
-        return '\n'.join(lines)
+        return {
+            'summary': '\n'.join(lines),
+            'status': 'mukellef' if is_taxpayer else 'non_mukellef',
+        }
 
     def _upsert_check_customer_tax_id_results(self, customer_nodes):
         company_import_model = self.env['einvoice.company.import']

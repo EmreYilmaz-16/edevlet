@@ -16,7 +16,13 @@
                             string="Mükelleflik Kontrolü"
                             type="object"
                             class="btn-secondary"/>
-                    <field name="taxpayer_check_result" widget="text" readonly="1"/>
+                    <field name="taxpayer_status" invisible="1"/>
+                    <div class="o_row" attrs="{'invisible': [('taxpayer_status', '!=', 'mukellef')]}">
+                        <span class="fa fa-check-circle text-success" title="Mükellef" style="font-size: 32px;"/>
+                    </div>
+                    <div class="o_row" attrs="{'invisible': [('taxpayer_status', '!=', 'non_mukellef')]}">
+                        <span class="fa fa-times-circle text-danger" title="Mükellef Değil" style="font-size: 32px;"/>
+                    </div>
                 </group>
             </xpath>
         </field>
