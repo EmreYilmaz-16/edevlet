@@ -11,6 +11,11 @@
                         string="Faturaya XML Oluştur"
                         class="btn-primary"
                         modifiers="{'invisible': [('move_type', 'not in', ['out_invoice', 'out_refund'])]}"/>
+                <button name="action_preview_invoice_xml"
+                        type="object"
+                        string="Faturayı XML Önizle"
+                        class="btn-secondary"
+                        modifiers="{'invisible': [('move_type', 'not in', ['out_invoice', 'out_refund'])]}"/>
             </xpath>
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="profile_type"

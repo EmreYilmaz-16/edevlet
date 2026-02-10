@@ -89,6 +89,24 @@ class AccountMove(models.Model):
             'target': 'self',
         }
 
+    def action_preview_invoice_xml(self):
+        self.ensure_one()
+        xml_content = self._generate_invoice_xml_content()
+        wizard = self.env['invoice.xml.preview.wizard'].create({
+            'preview_html': self.env['invoice.xml.preview.wizard'].build_preview_html(
+                xml_content,
+                self._get_invoice_xslt_bytes(),
+            ),
+        })
+        return {
+            'name': _('Fatura XML Önizleme'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'invoice.xml.preview.wizard',
+            'view_mode': 'form',
+            'res_id': wizard.id,
+            'target': 'new',
+        }
+
     def _generate_invoice_xml_content(self):
         module_path = __name__.split('.')
         module_name = (
@@ -192,11 +210,7 @@ class AccountMove(models.Model):
 
     def _apply_xslt_attachment(self, root, nsmap):
         integration = self._get_edevlet_integration()
-        xslt_base64 = None
-        if integration and integration.xslt_base64:
-            xslt_base64 = integration.xslt_base64
-            if isinstance(xslt_base64, bytes):
-                xslt_base64 = xslt_base64.decode()
+        xslt_base64 = self._get_invoice_xslt_base64(integration=integration)
         issue_date = self.invoice_date or fields.Date.context_today(self)
         for doc_ref in root.findall('cac:AdditionalDocumentReference', nsmap):
             doc_type = doc_ref.find('cbc:DocumentType', nsmap)
@@ -216,6 +230,21 @@ class AccountMove(models.Model):
                 embedded.text = xslt_base64
                 if integration and integration.xslt_file_name:
                     embedded.set('filename', integration.xslt_file_name)
+
+    def _get_invoice_xslt_base64(self, integration=None):
+        integration = integration or self._get_edevlet_integration()
+        xslt_base64 = None
+        if integration and integration.xslt_base64:
+            xslt_base64 = integration.xslt_base64
+            if isinstance(xslt_base64, bytes):
+                xslt_base64 = xslt_base64.decode()
+        return xslt_base64
+
+    def _get_invoice_xslt_bytes(self):
+        xslt_base64 = self._get_invoice_xslt_base64()
+        if not xslt_base64:
+            return b''
+        return base64.b64decode(xslt_base64)
 
     def _populate_party_block(self, party_record, partner, nsmap):
         if party_record is None or not partner:
