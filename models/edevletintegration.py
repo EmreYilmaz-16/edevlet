@@ -40,15 +40,6 @@ class EdevletIntegration(models.Model):
         readonly=True,
         help='Uploaded XSLT file encoded as base64.',
     )
-    taxpayer_check_tax_id = fields.Char(
-        string='Mükelleflik Kontrol Vergi/TC No',
-        size=11,
-        help='CheckCustomerTaxId servisi ile sorgulanacak vergi kimlik veya T.C. kimlik numarası.',
-    )
-    taxpayer_check_result = fields.Text(
-        string='Mükelleflik Kontrol Sonucu',
-        readonly=True,
-    )
 
     @api.depends('xslt_file')
     def _compute_xslt_base64(self):
@@ -80,33 +71,6 @@ class EdevletIntegration(models.Model):
             'params': {
                 'title': _('İşlem Başarılı'),
                 'message': _('%s adet mükellef kaydı içe aktarıldı/güncellendi.') % imported_count,
-                'type': 'success',
-                'sticky': False,
-            },
-        }
-
-    def action_check_customer_tax_id(self):
-        self.ensure_one()
-        if not self.taxpayer_check_tax_id:
-            raise UserError(_('Mükelleflik kontrolü için Vergi/TC No giriniz.'))
-        if not self.web_service_url:
-            raise UserError(_('Web Service URL alanı zorunludur.'))
-        if not self.sirket_kodu or not self.api_user_name or not self.api_password:
-            raise UserError(_('Şirket Kodu, API Kullanıcı Adı ve API Şifre alanları zorunludur.'))
-
-        ticket = self._get_forms_authentication_ticket()
-        result_summary = self._check_customer_tax_id(
-            ticket=ticket,
-            tax_id_or_personal_id=self.taxpayer_check_tax_id.strip(),
-        )
-        self.taxpayer_check_result = result_summary
-
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': _('Mükelleflik Kontrolü'),
-                'message': result_summary,
                 'type': 'success',
                 'sticky': False,
             },

@@ -10,6 +10,15 @@
                 <field name="vergi_dairesi" />
                 <field name="bina_numarasi" />
             </xpath>
+            <xpath expr="//sheet" position="inside">
+                <group string="E-Devlet">
+                    <button name="action_check_customer_tax_id"
+                            string="Mükelleflik Kontrolü"
+                            type="object"
+                            class="btn-secondary"/>
+                    <field name="taxpayer_check_result" widget="text" readonly="1"/>
+                </group>
+            </xpath>
         </field>
     </record>
 </odoo>
