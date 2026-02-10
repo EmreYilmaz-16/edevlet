@@ -5,6 +5,15 @@ from odoo.exceptions import UserError
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
+    def init(self):
+        """Backfill missing custom columns on already-installed databases."""
+        self.env.cr.execute(
+            """
+            ALTER TABLE res_partner
+            ADD COLUMN IF NOT EXISTS taxpayer_status varchar
+            """
+        )
+
     vergi_no = fields.Char(string="Vergi No")
     vergi_dairesi = fields.Char(string="Vergi Dairesi")
     bina_numarasi = fields.Char(string="Bina Numarası")
