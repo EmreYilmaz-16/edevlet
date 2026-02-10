@@ -40,6 +40,11 @@ class EdevletIntegration(models.Model):
         readonly=True,
         help='Uploaded XSLT file encoded as base64.',
     )
+    taxpayer_check_tax_id = fields.Char(
+        string='Taxpayer Check Tax ID',
+        size=20,
+        help='Legacy compatibility field kept to prevent onchange crashes on older custom views.',
+    )
 
     @api.depends('xslt_file')
     def _compute_xslt_base64(self):
