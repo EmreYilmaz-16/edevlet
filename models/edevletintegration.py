@@ -84,8 +84,7 @@ class EdevletIntegration(models.Model):
             raise UserError(_('Şirket Kodu, API Kullanıcı Adı ve API Şifre alanları zorunludur.'))
 
         ticket = self._get_forms_authentication_ticket()
-        customer_nodes = self._get_taxpayer_nodes(ticket=ticket, start_date=start_date)
-        return self._upsert_taxpayers(customer_nodes)
+        return self._stream_and_upsert_taxpayers(ticket=ticket, start_date=start_date)
 
     def _get_forms_authentication_ticket(self):
         envelope = f'''<soapenv:Envelope xmlns:soapenv="{SOAP_ENV_NS}" xmlns:tem="{TEMPURI_NS}">
@@ -134,6 +133,99 @@ class EdevletIntegration(models.Model):
                 % {'code': error_code or '-', 'desc': description or '-'}
             )
         return root.findall('.//tem:EInvoiceCustomerResult', ns)
+
+    def _stream_and_upsert_taxpayers(self, ticket, start_date):
+        envelope = f'''<soapenv:Envelope xmlns:soapenv="{SOAP_ENV_NS}" xmlns:tem="{TEMPURI_NS}">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:GetTaxIdListbyDate>
+         <tem:Ticket>{ticket}</tem:Ticket>
+         <tem:StartDate>{start_date}</tem:StartDate>
+      </tem:GetTaxIdListbyDate>
+   </soapenv:Body>
+</soapenv:Envelope>'''
+        headers = {
+            'Content-Type': 'text/xml; charset=utf-8',
+            'SOAPAction': 'http://tempuri.org/GetTaxIdListbyDate',
+        }
+        req = request.Request(
+            self.web_service_url,
+            data=envelope.encode('utf-8'),
+            headers=headers,
+            method='POST',
+        )
+        try:
+            with request.urlopen(req, timeout=300) as response:
+                return self._upsert_taxpayers_from_xml_stream(response)
+        except HTTPError as error:
+            error_body = error.read(20000).decode('utf-8', errors='ignore') if hasattr(error, 'read') else ''
+            _logger.exception('SOAP HTTP error while requesting %s', 'http://tempuri.org/GetTaxIdListbyDate')
+            raise UserError(_('SOAP HTTP hatası: %(status)s\n%(body)s') % {
+                'status': error.code,
+                'body': error_body,
+            }) from error
+        except URLError as error:
+            _logger.exception('SOAP connection error while requesting %s', 'http://tempuri.org/GetTaxIdListbyDate')
+            raise UserError(_('SOAP bağlantı hatası: %s') % error.reason) from error
+
+    def _upsert_taxpayers_from_xml_stream(self, xml_stream):
+        company_import_model = self.env['einvoice.company.import']
+        imported_count = 0
+        einvoice_type = int(self.type) if self.type and str(self.type).isdigit() else False
+
+        service_result = ''
+        service_result_description = ''
+        error_code = ''
+
+        try:
+            context = ET.iterparse(xml_stream, events=('start', 'end'))
+            _, root = next(context)
+        except ET.ParseError as error:
+            _logger.exception('SOAP response parse error')
+            raise UserError(_('SOAP cevabı parse edilemedi.')) from error
+
+        for event, elem in context:
+            if event != 'end':
+                continue
+
+            if elem.tag == f'{{{TEMPURI_NS}}}ServiceResult':
+                service_result = (elem.text or '').strip()
+            elif elem.tag == f'{{{TEMPURI_NS}}}ServiceResultDescription':
+                service_result_description = (elem.text or '').strip()
+            elif elem.tag == f'{{{TEMPURI_NS}}}ErrorCode':
+                error_code = (elem.text or '').strip()
+            elif elem.tag == f'{{{TEMPURI_NS}}}EInvoiceCustomerResult':
+                tax_no = (elem.findtext(f'{{{TEMPURI_NS}}}TaxIdOrPersonalId') or '').strip()
+                alias = (elem.findtext(f'{{{TEMPURI_NS}}}Alias') or '').strip()
+                if tax_no:
+                    values = {
+                        'tax_no': tax_no,
+                        'alias': alias,
+                        'type': self._normalize_node_text(elem.findtext(f'{{{TEMPURI_NS}}}Type')),
+                        'company_fullname': self._normalize_node_text(elem.findtext(f'{{{TEMPURI_NS}}}Name')),
+                        'register_date': self._normalize_datetime(self._normalize_node_text(elem.findtext(f'{{{TEMPURI_NS}}}RegisterTime'))),
+                        'alias_creation_date': self._normalize_datetime(self._normalize_node_text(elem.findtext(f'{{{TEMPURI_NS}}}AliasCreateDate'))),
+                        'einvoice_type': einvoice_type,
+                    }
+                    domain = [('tax_no', '=', tax_no)]
+                    if alias:
+                        domain.append(('alias', '=', alias))
+                    existing_record = company_import_model.search(domain, limit=1)
+                    if existing_record:
+                        existing_record.write(values)
+                    else:
+                        company_import_model.create(values)
+                    imported_count += 1
+                elem.clear()
+                root.clear()
+
+        if service_result and service_result.lower() != 'successful':
+            raise UserError(
+                _('Mükellef sorgusu başarısız oldu. Hata Kodu: %(code)s Açıklama: %(desc)s')
+                % {'code': error_code or '-', 'desc': service_result_description or '-'}
+            )
+
+        return imported_count
 
     def _upsert_taxpayers(self, customer_nodes):
         company_import_model = self.env['einvoice.company.import']
@@ -206,3 +298,9 @@ class EdevletIntegration(models.Model):
         if not value:
             return False
         return value.replace('T', ' ').replace('Z', '')
+
+    def _normalize_node_text(self, value):
+        if not value:
+            return False
+        cleaned_value = value.strip()
+        return cleaned_value or False
