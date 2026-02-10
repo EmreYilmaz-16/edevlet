@@ -1,6 +1,7 @@
-import base64
+from lxml import etree
 
 from odoo import fields, models
+from odoo.tools import html_escape
 
 
 class InvoiceXMLPreviewWizard(models.TransientModel):
@@ -14,73 +15,40 @@ class InvoiceXMLPreviewWizard(models.TransientModel):
 
     @staticmethod
     def build_preview_html(xml_content, xslt_content):
-        xml_b64 = base64.b64encode(xml_content).decode('ascii')
-        xslt_b64 = base64.b64encode(xslt_content).decode('ascii') if xslt_content else ''
-        return f"""
-<div id="preview_invoice" style="max-height:70vh;overflow:auto;padding:8px;"></div>
-<script type="text/javascript">
-(function () {{
-    function decodeBase64Unicode(data) {{
-        if (!data) {{
-            return '';
-        }}
-        try {{
-            return decodeURIComponent(Array.prototype.map.call(atob(data), function(c) {{
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }}).join(''));
-        }} catch (error) {{
-            return atob(data);
-        }}
-    }}
+        if not xml_content:
+            return '<div class="text-warning">Görüntülenecek XML içeriği bulunamadı.</div>'
 
-    function displayResult() {{
-        var previewNode = document.getElementById('preview_invoice');
-        if (!previewNode) {{
-            return;
-        }}
+        try:
+            xml_doc = etree.fromstring(xml_content)
+        except etree.XMLSyntaxError:
+            escaped_xml = html_escape(
+                xml_content.decode('utf-8', errors='replace') if isinstance(xml_content, (bytes, bytearray)) else str(xml_content)
+            )
+            return (
+                '<div class="text-danger">XML içeriği okunamadı.</div>'
+                '<pre style="white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow:auto;padding:8px;">'
+                f'{escaped_xml}'
+                '</pre>'
+            )
 
-        var xmlText = decodeBase64Unicode('{xml_b64}');
-        var xslText = decodeBase64Unicode('{xslt_b64}');
+        if not xslt_content:
+            escaped_xml = html_escape(etree.tostring(xml_doc, encoding='unicode', pretty_print=True))
+            return (
+                '<pre style="white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow:auto;padding:8px;">'
+                f'{escaped_xml}'
+                '</pre>'
+            )
 
-        if (!xslText) {{
-            previewNode.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word;">' +
-                (xmlText || '').replace(/[&<>]/g, function(ch) {{
-                    return {{'&': '&amp;', '<': '&lt;', '>': '&gt;'}}[ch];
-                }}) +
-                '</pre>';
-            return;
-        }}
-
-        try {{
-            var parser = new DOMParser();
-            var xml = parser.parseFromString(xmlText, 'text/xml');
-            var xsl = parser.parseFromString(xslText, 'text/xml');
-            var xsltProcessor = new XSLTProcessor();
-            xsltProcessor.importStylesheet(xsl);
-            var resultDocument = xsltProcessor.transformToFragment(xml, document);
-            previewNode.innerHTML = '';
-            previewNode.appendChild(resultDocument);
-        }} catch (error) {{
-            previewNode.innerHTML = '<div class="text-danger">XSLT önizleme sırasında hata oluştu.</div>' +
-                '<pre style="white-space:pre-wrap;word-break:break-word;">' +
-                (xmlText || '').replace(/[&<>]/g, function(ch) {{
-                    return {{'&': '&amp;', '<': '&lt;', '>': '&gt;'}}[ch];
-                }}) +
-                '</pre>';
-        }}
-    }}
-
-    if (document.readyState === 'loading') {{
-        document.addEventListener('DOMContentLoaded', displayResult);
-    }} else {{
-        displayResult();
-    }}
-
-    document.addEventListener('keydown', function(event) {{
-        if (event.key === 'Escape') {{
-            window.close();
-        }}
-    }});
-}})();
-</script>
-"""
+        try:
+            xsl_doc = etree.fromstring(xslt_content)
+            transform = etree.XSLT(xsl_doc)
+            html_result = transform(xml_doc)
+            return str(html_result)
+        except (etree.XMLSyntaxError, etree.XSLTError, ValueError):
+            escaped_xml = html_escape(etree.tostring(xml_doc, encoding='unicode', pretty_print=True))
+            return (
+                '<div class="text-danger">XSLT önizleme sırasında hata oluştu. XML içeriği gösteriliyor.</div>'
+                '<pre style="white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow:auto;padding:8px;">'
+                f'{escaped_xml}'
+                '</pre>'
+            )
