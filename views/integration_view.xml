@@ -26,6 +26,15 @@
         <field name="model">edevlet.integration</field>
         <field name="arch" type="xml">
             <form string="E-Devlet Entegrasyon Detayı">
+                <header>
+                    <button name="action_import_taxpayer_list"
+                            string="Mükellefleri Getir"
+                            type="object"
+                            class="btn-primary"/>
+                    <button name="action_import_all_taxpayer_list"
+                            string="Tüm Mükellefleri Getir"
+                            type="object"/>
+                </header>
                 <sheet>
                     <group>
                         <group>

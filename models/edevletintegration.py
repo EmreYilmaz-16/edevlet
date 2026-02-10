@@ -1,4 +1,17 @@
-from odoo import models, fields, api
+from datetime import date
+import logging
+from urllib import request
+from urllib.error import URLError, HTTPError
+import xml.etree.ElementTree as ET
+
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
+
+
+_logger = logging.getLogger(__name__)
+
+SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/'
+TEMPURI_NS = 'http://tempuri.org/'
 
 class EdevletIntegration(models.Model):
     _name = 'edevlet.integration'
@@ -33,3 +46,163 @@ class EdevletIntegration(models.Model):
         for record in self:
             xslt_file = record.with_context(bin_size=False).xslt_file
             record.xslt_base64 = xslt_file or False
+
+    def action_import_taxpayer_list(self):
+        self.ensure_one()
+        start_date = date(date.today().year - 1, 1, 1).strftime('%Y-%m-%d')
+        imported_count = self._import_taxpayer_list(start_date=start_date)
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('İşlem Başarılı'),
+                'message': _('%s adet mükellef kaydı içe aktarıldı/güncellendi.') % imported_count,
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
+    def action_import_all_taxpayer_list(self):
+        self.ensure_one()
+        imported_count = self._import_taxpayer_list(start_date='2010-01-01')
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('İşlem Başarılı'),
+                'message': _('%s adet mükellef kaydı içe aktarıldı/güncellendi.') % imported_count,
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
+    def _import_taxpayer_list(self, start_date):
+        self.ensure_one()
+        if not self.web_service_url:
+            raise UserError(_('Web Service URL alanı zorunludur.'))
+        if not self.sirket_kodu or not self.api_user_name or not self.api_password:
+            raise UserError(_('Şirket Kodu, API Kullanıcı Adı ve API Şifre alanları zorunludur.'))
+
+        ticket = self._get_forms_authentication_ticket()
+        customer_nodes = self._get_taxpayer_nodes(ticket=ticket, start_date=start_date)
+        return self._upsert_taxpayers(customer_nodes)
+
+    def _get_forms_authentication_ticket(self):
+        envelope = f'''<soapenv:Envelope xmlns:soapenv="{SOAP_ENV_NS}" xmlns:tem="{TEMPURI_NS}">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:GetFormsAuthenticationTicket>
+         <tem:CorporateCode>{self.sirket_kodu}</tem:CorporateCode>
+         <tem:LoginName>{self.api_user_name}</tem:LoginName>
+         <tem:Password><![CDATA[{self.api_password}]]></tem:Password>
+      </tem:GetFormsAuthenticationTicket>
+   </soapenv:Body>
+</soapenv:Envelope>'''
+        response_text = self._send_soap_request(
+            envelope=envelope,
+            soap_action='http://tempuri.org/GetFormsAuthenticationTicket',
+        )
+        root = self._parse_xml(response_text)
+        ns = {'soap': SOAP_ENV_NS, 'tem': TEMPURI_NS}
+        ticket_node = root.find('.//tem:GetFormsAuthenticationTicketResult', ns)
+        if ticket_node is None or not ticket_node.text:
+            raise UserError(_('Ticket bilgisi SOAP cevabında bulunamadı.'))
+        return ticket_node.text.strip()
+
+    def _get_taxpayer_nodes(self, ticket, start_date):
+        envelope = f'''<soapenv:Envelope xmlns:soapenv="{SOAP_ENV_NS}" xmlns:tem="{TEMPURI_NS}">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:GetTaxIdListbyDate>
+         <tem:Ticket>{ticket}</tem:Ticket>
+         <tem:StartDate>{start_date}</tem:StartDate>
+      </tem:GetTaxIdListbyDate>
+   </soapenv:Body>
+</soapenv:Envelope>'''
+        response_text = self._send_soap_request(
+            envelope=envelope,
+            soap_action='http://tempuri.org/GetTaxIdListbyDate',
+        )
+        root = self._parse_xml(response_text)
+        ns = {'tem': TEMPURI_NS}
+        service_result = root.findtext('.//tem:ServiceResult', default='', namespaces=ns)
+        if service_result and service_result.lower() != 'successful':
+            description = root.findtext('.//tem:ServiceResultDescription', default='', namespaces=ns)
+            error_code = root.findtext('.//tem:ErrorCode', default='', namespaces=ns)
+            raise UserError(
+                _('Mükellef sorgusu başarısız oldu. Hata Kodu: %(code)s Açıklama: %(desc)s')
+                % {'code': error_code or '-', 'desc': description or '-'}
+            )
+        return root.findall('.//tem:EInvoiceCustomerResult', ns)
+
+    def _upsert_taxpayers(self, customer_nodes):
+        company_import_model = self.env['einvoice.company.import']
+        imported_count = 0
+        einvoice_type = int(self.type) if self.type and str(self.type).isdigit() else False
+        for node in customer_nodes:
+            tax_no = self._get_node_text(node, 'TaxIdOrPersonalId')
+            alias = self._get_node_text(node, 'Alias')
+            if not tax_no:
+                continue
+            values = {
+                'tax_no': tax_no,
+                'alias': alias,
+                'type': self._get_node_text(node, 'Type'),
+                'company_fullname': self._get_node_text(node, 'Name'),
+                'register_date': self._normalize_datetime(self._get_node_text(node, 'RegisterTime')),
+                'alias_creation_date': self._normalize_datetime(self._get_node_text(node, 'AliasCreateDate')),
+                'einvoice_type': einvoice_type,
+            }
+            domain = [('tax_no', '=', tax_no)]
+            if alias:
+                domain.append(('alias', '=', alias))
+            existing_record = company_import_model.search(domain, limit=1)
+            if existing_record:
+                existing_record.write(values)
+            else:
+                company_import_model.create(values)
+            imported_count += 1
+        return imported_count
+
+    def _send_soap_request(self, envelope, soap_action):
+        headers = {
+            'Content-Type': 'text/xml; charset=utf-8',
+            'SOAPAction': soap_action,
+        }
+        req = request.Request(
+            self.web_service_url,
+            data=envelope.encode('utf-8'),
+            headers=headers,
+            method='POST',
+        )
+        try:
+            with request.urlopen(req, timeout=60) as response:
+                return response.read().decode('utf-8', errors='ignore')
+        except HTTPError as error:
+            error_body = error.read().decode('utf-8', errors='ignore') if hasattr(error, 'read') else ''
+            _logger.exception('SOAP HTTP error while requesting %s', soap_action)
+            raise UserError(_('SOAP HTTP hatası: %(status)s\n%(body)s') % {
+                'status': error.code,
+                'body': error_body,
+            }) from error
+        except URLError as error:
+            _logger.exception('SOAP connection error while requesting %s', soap_action)
+            raise UserError(_('SOAP bağlantı hatası: %s') % error.reason) from error
+
+    def _parse_xml(self, payload):
+        try:
+            return ET.fromstring(payload)
+        except ET.ParseError as error:
+            _logger.exception('SOAP response parse error')
+            raise UserError(_('SOAP cevabı parse edilemedi.')) from error
+
+    def _get_node_text(self, parent_node, tag_name):
+        node = parent_node.find(f'{{{TEMPURI_NS}}}{tag_name}')
+        if node is None or not node.text:
+            return False
+        return node.text.strip()
+
+    def _normalize_datetime(self, value):
+        if not value:
+            return False
+        return value.replace('T', ' ').replace('Z', '')
