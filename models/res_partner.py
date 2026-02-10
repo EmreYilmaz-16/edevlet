@@ -12,6 +12,15 @@ class ResPartner(models.Model):
         string='Mükelleflik Kontrol Sonucu',
         readonly=True,
     )
+    taxpayer_status = fields.Selection(
+        selection=[
+            ('mukellef', 'Mükellef'),
+            ('non_mukellef', 'Mükellef Değil'),
+        ],
+        string='Mükellef Durumu',
+        readonly=True,
+        copy=False,
+    )
 
     def action_check_customer_tax_id(self):
         self.ensure_one()
@@ -25,18 +34,19 @@ class ResPartner(models.Model):
             raise UserError(_('Mükelleflik kontrolü için EFATURA tipinde entegrasyon tanımı bulunamadı.'))
 
         ticket = integration._get_forms_authentication_ticket()
-        result_summary = integration._check_customer_tax_id(
+        result = integration._check_customer_tax_id(
             ticket=ticket,
             tax_id_or_personal_id=tax_id_or_personal_id,
         )
-        self.taxpayer_check_result = result_summary
+        self.taxpayer_check_result = result.get('summary')
+        self.taxpayer_status = result.get('status')
 
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
                 'title': _('Mükelleflik Kontrolü'),
-                'message': result_summary,
+                'message': result.get('summary'),
                 'type': 'success',
                 'sticky': False,
             },
