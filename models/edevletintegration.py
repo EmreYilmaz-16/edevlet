@@ -40,6 +40,15 @@ class EdevletIntegration(models.Model):
         readonly=True,
         help='Uploaded XSLT file encoded as base64.',
     )
+    taxpayer_check_tax_id = fields.Char(
+        string='Mükelleflik Kontrol Vergi/TC No',
+        size=11,
+        help='CheckCustomerTaxId servisi ile sorgulanacak vergi kimlik veya T.C. kimlik numarası.',
+    )
+    taxpayer_check_result = fields.Text(
+        string='Mükelleflik Kontrol Sonucu',
+        readonly=True,
+    )
 
     @api.depends('xslt_file')
     def _compute_xslt_base64(self):
@@ -71,6 +80,33 @@ class EdevletIntegration(models.Model):
             'params': {
                 'title': _('İşlem Başarılı'),
                 'message': _('%s adet mükellef kaydı içe aktarıldı/güncellendi.') % imported_count,
+                'type': 'success',
+                'sticky': False,
+            },
+        }
+
+    def action_check_customer_tax_id(self):
+        self.ensure_one()
+        if not self.taxpayer_check_tax_id:
+            raise UserError(_('Mükelleflik kontrolü için Vergi/TC No giriniz.'))
+        if not self.web_service_url:
+            raise UserError(_('Web Service URL alanı zorunludur.'))
+        if not self.sirket_kodu or not self.api_user_name or not self.api_password:
+            raise UserError(_('Şirket Kodu, API Kullanıcı Adı ve API Şifre alanları zorunludur.'))
+
+        ticket = self._get_forms_authentication_ticket()
+        result_summary = self._check_customer_tax_id(
+            ticket=ticket,
+            tax_id_or_personal_id=self.taxpayer_check_tax_id.strip(),
+        )
+        self.taxpayer_check_result = result_summary
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _('Mükelleflik Kontrolü'),
+                'message': result_summary,
                 'type': 'success',
                 'sticky': False,
             },
@@ -226,6 +262,50 @@ class EdevletIntegration(models.Model):
             )
 
         return imported_count
+
+    def _check_customer_tax_id(self, ticket, tax_id_or_personal_id):
+        envelope = f'''<soapenv:Envelope xmlns:soapenv="{SOAP_ENV_NS}" xmlns:tem="{TEMPURI_NS}">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <tem:CheckCustomerTaxId>
+         <tem:Ticket>{ticket}</tem:Ticket>
+         <tem:TaxIdOrPersonalId>{tax_id_or_personal_id}</tem:TaxIdOrPersonalId>
+      </tem:CheckCustomerTaxId>
+   </soapenv:Body>
+</soapenv:Envelope>'''
+        response_text = self._send_soap_request(
+            envelope=envelope,
+            soap_action='http://tempuri.org/CheckCustomerTaxId',
+        )
+        root = self._parse_xml(response_text)
+        ns = {'tem': TEMPURI_NS}
+
+        service_result = root.findtext('.//tem:ServiceResult', default='', namespaces=ns)
+        service_description = root.findtext('.//tem:ServiceResultDescription', default='', namespaces=ns)
+        error_code = root.findtext('.//tem:ErrorCode', default='', namespaces=ns)
+        if service_result and service_result.lower() != 'successful':
+            raise UserError(
+                _('Mükelleflik kontrolü başarısız oldu. Hata Kodu: %(code)s Açıklama: %(desc)s')
+                % {'code': error_code or '-', 'desc': service_description or '-'}
+            )
+
+        customers = root.findall('.//tem:EInvoiceCustomerResult', ns)
+        if not customers:
+            return _('Sorgu başarılı fakat kayıt bulunamadı.')
+
+        lines = []
+        for customer in customers:
+            is_exist = (customer.findtext(f'{{{TEMPURI_NS}}}IsExist') or '').strip().lower()
+            lines.append(
+                _('%(tax_id)s | %(name)s | %(alias)s | Durum: %(status)s') % {
+                    'tax_id': self._normalize_node_text(customer.findtext(f'{{{TEMPURI_NS}}}TaxIdOrPersonalId')) or '-',
+                    'name': self._normalize_node_text(customer.findtext(f'{{{TEMPURI_NS}}}Name')) or '-',
+                    'alias': self._normalize_node_text(customer.findtext(f'{{{TEMPURI_NS}}}Alias')) or '-',
+                    'status': _('Var') if is_exist == 'true' else _('Yok'),
+                }
+            )
+
+        return '\n'.join(lines)
 
     def _upsert_taxpayers(self, customer_nodes):
         company_import_model = self.env['einvoice.company.import']
