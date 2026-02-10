@@ -293,6 +293,8 @@ class EdevletIntegration(models.Model):
         if not customers:
             return _('Sorgu başarılı fakat kayıt bulunamadı.')
 
+        self._upsert_check_customer_tax_id_results(customers)
+
         lines = []
         for customer in customers:
             is_exist = (customer.findtext(f'{{{TEMPURI_NS}}}IsExist') or '').strip().lower()
@@ -306,6 +308,34 @@ class EdevletIntegration(models.Model):
             )
 
         return '\n'.join(lines)
+
+    def _upsert_check_customer_tax_id_results(self, customer_nodes):
+        company_import_model = self.env['einvoice.company.import']
+        einvoice_type = int(self.type) if self.type and str(self.type).isdigit() else False
+
+        for node in customer_nodes:
+            tax_no = self._normalize_node_text(node.findtext(f'{{{TEMPURI_NS}}}TaxIdOrPersonalId'))
+            alias = self._normalize_node_text(node.findtext(f'{{{TEMPURI_NS}}}Alias'))
+            if not tax_no:
+                continue
+
+            values = {
+                'tax_no': tax_no,
+                'alias': alias,
+                'type': self._normalize_node_text(node.findtext(f'{{{TEMPURI_NS}}}Type')),
+                'company_fullname': self._normalize_node_text(node.findtext(f'{{{TEMPURI_NS}}}Name')),
+                'register_date': self._normalize_datetime(self._normalize_node_text(node.findtext(f'{{{TEMPURI_NS}}}RegisterTime'))),
+                'alias_creation_date': self._normalize_datetime(self._normalize_node_text(node.findtext(f'{{{TEMPURI_NS}}}AliasCreateDate'))),
+                'einvoice_type': einvoice_type,
+            }
+            domain = [('tax_no', '=', tax_no)]
+            if alias:
+                domain.append(('alias', '=', alias))
+            existing_record = company_import_model.search(domain, limit=1)
+            if existing_record:
+                existing_record.write(values)
+            else:
+                company_import_model.create(values)
 
     def _upsert_taxpayers(self, customer_nodes):
         company_import_model = self.env['einvoice.company.import']
