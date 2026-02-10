@@ -34,6 +34,10 @@
                     <button name="action_import_all_taxpayer_list"
                             string="Tüm Mükellefleri Getir"
                             type="object"/>
+                    <button name="action_check_customer_tax_id"
+                            string="Mükelleflik Kontrolü"
+                            type="object"
+                            class="btn-secondary"/>
                 </header>
                 <sheet>
                     <group>
@@ -53,6 +57,10 @@
                             <field name="xslt_file_name"/>
                             <field name="xslt_file" filename="xslt_file_name"/>
                         </group>
+                    </group>
+                    <group>
+                        <field name="taxpayer_check_tax_id"/>
+                        <field name="taxpayer_check_result" widget="text" readonly="1"/>
                     </group>
                     <group>
                         <field name="xslt_base64" widget="text" readonly="1"/>
