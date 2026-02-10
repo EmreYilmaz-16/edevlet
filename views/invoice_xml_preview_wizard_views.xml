@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_invoice_xml_preview_wizard_form" model="ir.ui.view">
+        <field name="name">invoice.xml.preview.wizard.form</field>
+        <field name="model">invoice.xml.preview.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Fatura XML Önizleme" create="0" edit="0" delete="0">
+                <sheet>
+                    <field name="preview_html" widget="html" nolabel="1" readonly="1"/>
+                </sheet>
+                <footer>
+                    <button string="Kapat" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
