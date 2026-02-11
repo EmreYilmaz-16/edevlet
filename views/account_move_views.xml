@@ -6,16 +6,25 @@
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="action_download_invoice_xml"
-                        type="object"
-                        string="Faturaya XML Oluştur"
-                        class="btn-primary"
-                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
-                <button name="action_preview_invoice_xml"
-                        type="object"
-                        string="Faturayı XML Önizle"
-                        class="btn-secondary"
-                        invisible="move_type not in ('out_invoice', 'out_refund')"/>
+                <div class="btn-group"
+                     invisible="move_type not in ('out_invoice', 'out_refund')">
+                    <button type="button"
+                            class="btn btn-primary dropdown-toggle"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                        E-Fatura İşlemleri
+                    </button>
+                    <div class="dropdown-menu">
+                        <button name="action_download_invoice_xml"
+                                type="object"
+                                string="Faturaya XML Oluştur"
+                                class="dropdown-item"/>
+                        <button name="action_preview_invoice_xml"
+                                type="object"
+                                string="Faturayı XML Önizle"
+                                class="dropdown-item"/>
+                    </div>
+                </div>
             </xpath>
             <xpath expr="//field[@name='invoice_date']" position="after">
                 <field name="profile_type"
