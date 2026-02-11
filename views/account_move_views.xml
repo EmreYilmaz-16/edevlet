@@ -8,12 +8,13 @@
             <xpath expr="//header" position="inside">
                 <div class="btn-group"
                      invisible="move_type not in ('out_invoice', 'out_refund')">
-                    <button type="button"
-                            class="btn btn-primary dropdown-toggle"
-                            data-bs-toggle="dropdown"
-                            aria-expanded="false">
+                    <a role="button"
+                       class="btn btn-primary dropdown-toggle"
+                       data-bs-toggle="dropdown"
+                       aria-expanded="false"
+                       href="#">
                         E-Fatura İşlemleri
-                    </button>
+                    </a>
                     <div class="dropdown-menu">
                         <button name="action_download_invoice_xml"
                                 type="object"
