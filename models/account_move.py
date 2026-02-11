@@ -49,6 +49,8 @@ UBL_XML_NAMESPACES = {
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    _XML_ALLOWED_MOVE_TYPES = ('out_invoice', 'out_refund')
+
     profile_type = fields.Selection(
         PROFILE_TYPES,
         string='Profile Type',
@@ -74,6 +76,7 @@ class AccountMove(models.Model):
 
     def action_download_invoice_xml(self):
         self.ensure_one()
+        self._check_xml_supported_move_type()
         xml_content = self._generate_invoice_xml_content()
         attachment = self.env['ir.attachment'].create({
             'name': f"{self.name or 'invoice'}.xml",
@@ -91,6 +94,7 @@ class AccountMove(models.Model):
 
     def action_preview_invoice_xml(self):
         self.ensure_one()
+        self._check_xml_supported_move_type()
         xml_content = self._generate_invoice_xml_content()
         wizard = self.env['invoice.xml.preview.wizard'].create({
             'preview_html': self.env['invoice.xml.preview.wizard'].build_preview_html(
@@ -106,6 +110,11 @@ class AccountMove(models.Model):
             'res_id': wizard.id,
             'target': 'new',
         }
+
+    def _check_xml_supported_move_type(self):
+        self.ensure_one()
+        if self.move_type not in self._XML_ALLOWED_MOVE_TYPES:
+            raise ValidationError(_('Invoice XML actions are only available for customer sales invoices and credit notes.'))
 
     def _generate_invoice_xml_content(self):
         module_path = __name__.split('.')
